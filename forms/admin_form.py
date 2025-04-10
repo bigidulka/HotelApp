@@ -161,6 +161,28 @@ class AdminForm(tk.Toplevel):
 
         btn_unblock = ttk.Button(self.buttons_frame, text="Снять блокировку", style="Admin.TButton", command=self.on_unblock_user)
         btn_unblock.pack(fill="x", pady=2)
+        
+        btn_block = ttk.Button(self.buttons_frame, text="Заблокировать пользователя", style="Admin.TButton", command=self.on_block_user)
+        btn_block.pack(fill="x", pady=2)
+        
+    def on_block_user(self):
+        selected_item = self.tree.selection()
+        if not selected_item:
+            messagebox.showerror("Ошибка", "Выберите пользователя для блокировки.")
+            return
+
+        user_id = self.tree.item(selected_item)["values"][0]
+        confirm = messagebox.askyesno("Подтверждение", f"Точно заблокировать пользователя ID={user_id}?")
+        if not confirm:
+            return
+
+        success, msg = self.user_model.block_user_by_id(user_id)
+        if success:
+            messagebox.showinfo("Информация", msg)
+            self.load_users()
+        else:
+            messagebox.showerror("Ошибка", msg)
+
 
     def on_add_user(self):
         from forms.user_form import UserForm
@@ -589,8 +611,8 @@ class AdminForm(tk.Toplevel):
             return
         service_id = self.tree.item(selected_item)["values"][0]
 
-        from forms.booking_form import BookingForm
-        form = BookingForm(self, service_id=service_id) 
+        from forms.services_form import ServiceForm
+        form = ServiceForm(self, service_id=service_id)
         form.grab_set()
         self.wait_window(form)
         self.load_services()

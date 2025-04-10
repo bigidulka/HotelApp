@@ -81,6 +81,21 @@ class User:
                     conn.commit()
             finally:
                 conn.close()
+                
+    def block_user_by_id(self, user_id):
+        conn = self.connect()
+        if not conn:
+            return False, "Ошибка подключения к базе данных"
+
+        try:
+            with conn.cursor() as cur:
+                cur.execute("UPDATE Users SET IsBlocked = TRUE WHERE UserID = %s", (user_id,))
+                conn.commit()
+                return True, "Пользователь успешно заблокирован."
+        except psycopg2.Error as e:
+            return False, f"Ошибка базы данных: {e}"
+        finally:
+            conn.close()
 
     def update_failed_attempts(self, login, attempts):
         conn = self.connect()
@@ -138,6 +153,24 @@ class User:
                 return cur.fetchall()
         finally:
             conn.close()
+                
+    def add_role(self, rolename):
+        conn = self.connect()
+        if not conn:
+            return False, "Ошибка подключения к базе данных"
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM Roles WHERE rolename = %s", (rolename,))
+                if cur.fetchone()[0] > 0:
+                    return False, "Такая роль уже существует."
+                cur.execute("INSERT INTO Roles (rolename) VALUES (%s)", (rolename,))
+                conn.commit()
+                return True, "Роль успешно добавлена."
+        except psycopg2.Error as e:
+            return False, f"Ошибка базы данных: {e}"
+        finally:
+            conn.close()
+
 
     def add_user(self, login, password, role_id):
         conn = self.connect()

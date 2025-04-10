@@ -12,6 +12,8 @@ class UserForm(tk.Toplevel):
         super().__init__(parent)
         self.user_model = User()
         self.user_id = user_id  # None или int
+        
+        self.roles = self.user_model.get_roles()
 
         # Заголовок окна в зависимости от режима
         if self.user_id is None:
@@ -63,9 +65,10 @@ class UserForm(tk.Toplevel):
 
         # Роль
         ttk.Label(fields_frame, text="Роль:", style="Regular.TLabel").grid(row=2, column=0, padx=5, pady=5, sticky="e")
-        self.cmb_role = tk.StringVar()
         # Для упрощения две роли, можно добавить больше
-        role_dropdown = ttk.OptionMenu(fields_frame, self.cmb_role, "Администратор", "Администратор", "Пользователь")
+        role_names = [r[1] for r in self.roles]  # Только имена
+        self.cmb_role = tk.StringVar()
+        role_dropdown = ttk.OptionMenu(fields_frame, self.cmb_role, role_names[0], *role_names)
         role_dropdown.grid(row=2, column=1, padx=5, pady=5, sticky="we")
 
         # Кнопка «Сохранить»
@@ -103,15 +106,22 @@ class UserForm(tk.Toplevel):
     def on_save(self):
         """
         1) Считываем поля (login, password, role)
-        2) Если self.user_id is None -> add_user, иначе -> update_user
-        3) Закрываем окно при успехе
+        2) Находим role_id по имени роли
+        3) Если self.user_id is None -> add_user, иначе -> update_user
+        4) Закрываем окно при успехе
         """
         login = self.txt_login.get().strip()
         password = self.txt_password.get().strip()
-        role = self.cmb_role.get()
+        selected_role_name = self.cmb_role.get()
 
-        if not login or not role:
+        if not login or not selected_role_name:
             messagebox.showerror("Ошибка", "Поля 'Логин' и 'Роль' обязательны для заполнения.")
+            return
+
+        # Находим ID роли по её имени
+        role_id = next((r[0] for r in self.roles if r[1] == selected_role_name), None)
+        if role_id is None:
+            messagebox.showerror("Ошибка", "Выбрана некорректная роль.")
             return
 
         # Определяем, добавляем или обновляем
@@ -121,12 +131,11 @@ class UserForm(tk.Toplevel):
                 messagebox.showerror("Ошибка", "При добавлении пароль обязателен.")
                 return
 
-            success, msg = self.user_model.add_user(login, password, role)
+            success, msg = self.user_model.add_user(login, password, role_id)
         else:
             # Режим редактирования
-            # Если пароль пустой => не меняем пароль, можно передавать None
             pass_for_update = password if password else None
-            success, msg = self.user_model.update_user(self.user_id, login, pass_for_update, role)
+            success, msg = self.user_model.update_user(self.user_id, login, pass_for_update, role_id)
 
         if success:
             messagebox.showinfo("Информация", msg)

@@ -20,9 +20,33 @@ class Staff:
         try:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT id, fullname, roleid
-                    FROM staff
-                    ORDER BY id
+                    SELECT s.id, s.fullname, r.rolename
+                    FROM staff s
+                    JOIN roles r ON s.roleid = r."RoleId"
+                    ORDER BY s.id
+                """)
+                return cur.fetchall()
+        finally:
+            conn.close()
+            
+    def get_staff_roles(self):
+        """
+        Возвращает роли, которые предназначены именно для сотрудников.
+        Например, все, кроме 'Администратор' и 'Пользователь'.
+        Или по любому другому признаку (ID, название и т.д.).
+        """
+        conn = self.connect()
+        if not conn:
+            return []
+
+        try:
+            with conn.cursor() as cur:
+                # Допустим, решаем, что роли сотрудников - всё, КРОМЕ 'Администратор'/'Пользователь'.
+                cur.execute("""
+                    SELECT "RoleId", rolename
+                    FROM roles
+                    WHERE rolename NOT IN ('Администратор', 'Пользователь')
+                    ORDER BY "RoleId"
                 """)
                 return cur.fetchall()
         finally:
